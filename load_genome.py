@@ -65,7 +65,7 @@ class Injector(object):
                 break
 
     def add_view(self):
-        map_doc = "function (doc) {\n  emit([doc.genotype, doc.position, doc.chromosome], 1);\n}"
+        map_doc = "function (doc) {\n  emit([doc.genotype, doc.rsid, doc.position, doc.chromosome], 1);\n}"
         reduce_doc = "function (keys, values, rereduce) {\n    return sum(values);\n}"
         _design = "discover"
         _view = "genotype"
