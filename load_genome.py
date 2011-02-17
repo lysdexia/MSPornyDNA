@@ -56,16 +56,12 @@ class Injector(object):
         while genome:
             try:
                 row = genome.next()
-                key = "%s_%s"%(self.genome_name, row["position"])
-                try:
-                    db[key] = row
-                except couchdb.http.ResourceConflict, error:
-                    print("%s for %s. Skipping."%(error, key))
+                db.save(row)
             except StopIteration:
                 break
 
     def add_view(self):
-        map_doc = "function (doc) {\n  emit([doc.genotype, doc.rsid, doc.position, doc.chromosome], 1);\n}"
+        map_doc = "function (doc) {\n  emit([doc.genotype, doc.position], 1);\n}"
         reduce_doc = "function (keys, values, rereduce) {\n    return sum(values);\n}"
         _design = "discover"
         _view = "genotype"
