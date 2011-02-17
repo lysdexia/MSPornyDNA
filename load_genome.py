@@ -56,7 +56,7 @@ class Injector(object):
         while genome:
             # use the rsid for our row key
             row = genome.next()
-            key = row["rsid"]
+            key = "%s_%s"%(self.genome_name, row["position"])
             try:
                 db[key] = row
             except couchdb.http.ResourceConflict, error:
@@ -89,6 +89,9 @@ if __name__ == "__main__":
     if not all([options.genome_file, options.genome_name]):
         parser.print_help()
         sys.exit("See README, load_genome.ini and/or script headers for more information.")
+
+    # couchdb likes lowercase names
+    options.genome_name = "".join([i for i in options.genome_name.lower()])
 
     injector = Injector(options.genome_name, options.genome_file)
     injector.to_database()
