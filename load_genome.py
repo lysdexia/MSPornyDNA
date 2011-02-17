@@ -54,15 +54,15 @@ class Injector(object):
         genome = self.gen_genome()
         db = self.connect()
         while genome:
-            # use the rsid for our row key
-            row = genome.next()
-            key = "%s_%s"%(self.genome_name, row["position"])
             try:
-                db[key] = row
-            except couchdb.http.ResourceConflict, error:
-                print("%s for %s. Skipping."%(error, key))
-            except:
-                pass
+                row = genome.next()
+                key = "%s_%s"%(self.genome_name, row["position"])
+                try:
+                    db[key] = row
+                except couchdb.http.ResourceConflict, error:
+                    print("%s for %s. Skipping."%(error, key))
+            except StopIteration:
+                break
 
     def add_view(self):
         map_doc = "function (doc) {\n  emit([doc.genotype, doc.position, doc.chromosome], 1);\n}"
@@ -94,5 +94,5 @@ if __name__ == "__main__":
     options.genome_name = "".join([i for i in options.genome_name.lower()])
 
     injector = Injector(options.genome_name, options.genome_file)
-    injector.to_database()
     injector.add_view()
+    injector.to_database()
