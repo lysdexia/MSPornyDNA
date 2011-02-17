@@ -1,0 +1,25 @@
+All files in this repository released under Creative Commons share-alike license: http://creativecommons.org/licenses/by-sa/2.5/
+
+Set up couchdb. (on ubuntu, apt-get install couchdb)
+Install python couchdb module (easy_install couchdb)
+
+Do a git checkout of msporny's genome
+https://github.com/msporny/dna
+
+Edit dna/ManuSporny-genome.txt
+    Delete all comments down to header line:
+    # "#rsid	chromosome	position	genotype"
+    # then remove hash symbol
+Save dna/ManuSporny-genome.txt as dna/ManuSporny-genome.csv
+
+Edit load_genome.ini to reflect your setup. If you have set up couchdb running on localhost in "admin party" mode (i.e. you have set no admins) then load_genome.ini should be fine the way it is.
+
+Run load_genome.py like so:
+    
+    ./load_genome.py -f /path/to/csvfile -n databasename
+
+The script automatically installs a test view for you to play with.
+
+Have fun!
+
+Doug Shawhan
