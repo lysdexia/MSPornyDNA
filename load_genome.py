@@ -37,18 +37,22 @@ class Injector(object):
         if all([username, password]):
             couch.resource.credentials = (username, password)
         try:
-            db = couch[self.genome_name]
+            db = couch["public_genomes"]
         except:
-            db = couch.create(self.genome_name)
+            db = couch.create("public_genomes")
             print("created %s"%db._name)
+            self.add_views()
         return db
 
     def gen_genome(self):
         # declare tab delimited.
+        human = {"human": self.genome_name}
         _raw = csv.reader(open(self.genome_file), delimiter = "	")
         header = _raw.next()
         for row in _raw:
-            yield dict([(k, v) for k, v in zip(header, row)])
+            d = dict([(k, v) for k, v in zip(header, row)])
+            d["human"] = self.genome_name
+            yield d
 
     def to_database(self):
         genome = self.gen_genome()
@@ -60,18 +64,43 @@ class Injector(object):
             except StopIteration:
                 break
 
-    def add_view(self):
-        map_doc = "function (doc) {\n  emit([doc.genotype, doc.position], 1);\n}"
-        reduce_doc = "function (keys, values, rereduce) {\n    return sum(values);\n}"
-        _design = "discover"
-        _view = "genotype"
+    def add_views(self):
+        views = {
+
+                "genotype": (
+                    "function (doc) {\n  emit([doc.genotype, doc.position], 1);\n}",
+                    "function (keys, values, rereduce) {\n    return sum(values);\n}",
+                    ),
+                "chromosome": (
+                    "function (doc) {\n  emit([doc.chromosome, doc.genotype, doc.position], null);\n}",
+                    "function (keys, values, rereduce) {\n    return null;\n}",
+                    ),
+                "position": (
+                    "function (doc) {\n  emit([doc.position, doc.rsid], null);\n}",
+                    "function (keys, values, rereduce) {\n    return null;\n}",
+                    ),
+                "rsid": (
+                    "function (doc) {\n  emit([doc.rsid, doc.position], null);\n}",
+                    "function (keys, values, rereduce) {\n    return null;\n}",
+                    ),
+                }
+
+        _design = "snoop"
         db = self.connect()
-        view = couchdb.design.ViewDefinition(_design, _view, map_doc, reduce_fun = reduce_doc, language = "javascript") 
-        view.sync(db)
-        design_doc = view.get_doc(db)
-        print(design_doc)
+        for v in views:
+            if len(views[v]) == 2:
+                map_doc = views[v][0]
+                reduce_doc = views[v][1]
+                view = couchdb.design.ViewDefinition(_design, v, map_doc, reduce_fun = reduce_doc, language = "javascript") 
+            else:
+                map_doc = views[v][0]
+                view = couchdb.design.ViewDefinition(_design, v, map_doc, language = "javascript") 
+            view.sync(db)
+            design_doc = view.get_doc(db)
+            print(design_doc)
 
 if __name__ == "__main__":
+
     usage = "usage: %prog [options]"
     parser = OptionParser(usage = usage)
     parser.add_option("-f", "--genome_file", dest = "genome_file", help = "Tab-seperated text file containing genome information.")
@@ -90,5 +119,4 @@ if __name__ == "__main__":
     options.genome_name = "".join([i for i in options.genome_name.lower()])
 
     injector = Injector(options.genome_name, options.genome_file)
-    injector.add_view()
     injector.to_database()
