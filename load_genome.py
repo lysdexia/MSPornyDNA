@@ -16,6 +16,7 @@
 import sys, csv, ConfigParser
 from optparse import OptionParser
 import couchdb, couchdb.design
+from couchdb import Document
 try:
     couchdb.json.use("cjson")
 except:
@@ -54,13 +55,23 @@ class Injector(object):
             d["human"] = self.genome_name
             yield d
 
-    def to_database(self):
+    def genome(self):
         genome = self.gen_genome()
+        while genome:
+            bunch = []
+            for i in xrange(10000):
+                try:
+                    bunch.append(Document(genome.next()))
+                except StopIteration:
+                    break
+            yield bunch
+
+    def to_database(self):
         db = self.connect()
+        genome = self.genome()
         while genome:
             try:
-                row = genome.next()
-                db.save(row)
+                db.update(genome.next())
             except StopIteration:
                 break
 
